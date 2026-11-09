@@ -3,6 +3,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
+// Connect Prisma to PostgreSQL
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });
@@ -28,41 +29,150 @@ async function main() {
     )
   );
 
+  // Map genre names to their database IDs
   const genreIds = new Map(
     genres.map((genre) => [genre.name, genre.id])
   );
 
-  // Add sixteen books
+  // Create sixteen books
   const books = [
-    { title: "Things Fall Apart", author: "Chinua Achebe", isbn: "9780385474542", genre: "Fiction", publishedYear: 1958 },
-    { title: "The River Between", author: "Ngugi wa Thiong'o", isbn: "9780435905484", genre: "Fiction", publishedYear: 1965 },
-    { title: "Half of a Yellow Sun", author: "Chimamanda Ngozi Adichie", isbn: "9780007200283", genre: "Fiction", publishedYear: 2006 },
-    { title: "The Great Gatsby", author: "F. Scott Fitzgerald", isbn: "9780743273565", genre: "Fiction", publishedYear: 1925 },
-
-    { title: "A Brief History of Time", author: "Stephen Hawking", isbn: "9780553380163", genre: "Science", publishedYear: 1988 },
-    { title: "The Selfish Gene", author: "Richard Dawkins", isbn: "9780198788607", genre: "Science", publishedYear: 1976 },
-    { title: "Cosmos", author: "Carl Sagan", isbn: "9780345539434", genre: "Science", publishedYear: 1980 },
-    { title: "The Origin of Species", author: "Charles Darwin", isbn: "9781509827695", genre: "Science", publishedYear: 1859 },
-
-    { title: "Clean Code", author: "Robert C. Martin", isbn: "9780132350884", genre: "Technology", publishedYear: 2008 },
-    { title: "The Pragmatic Programmer", author: "David Thomas", isbn: "9780135957059", genre: "Technology", publishedYear: 2019 },
-    { title: "Introduction to Algorithms", author: "Thomas H. Cormen", isbn: "9780262046305", genre: "Technology", publishedYear: 2022 },
-    { title: "Design Patterns", author: "Erich Gamma", isbn: "9780201633610", genre: "Technology", publishedYear: 1994 },
-
-    { title: "Sapiens", author: "Yuval Noah Harari", isbn: "9780062316097", genre: "History", publishedYear: 2011 },
-    { title: "The Art of War", author: "Sun Tzu", isbn: "9781590302255", genre: "History", publishedYear: -500 },
-    { title: "Long Walk to Freedom", author: "Nelson Mandela", isbn: "9780316548182", genre: "History", publishedYear: 1994 },
-    { title: "Guns, Germs, and Steel", author: "Jared Diamond", isbn: "9780393354324", genre: "History", publishedYear: 1997 },
+    {
+      title: "Things Fall Apart",
+      author: "Chinua Achebe",
+      isbn: "9780385474542",
+      publishedYear: 1958,
+      genre: "Fiction",
+    },
+    {
+      title: "The River Between",
+      author: "Ngugi wa Thiong'o",
+      isbn: "9780435905484",
+      publishedYear: 1965,
+      genre: "Fiction",
+    },
+    {
+      title: "Animal Farm",
+      author: "George Orwell",
+      isbn: "9780451526342",
+      publishedYear: 1945,
+      genre: "Fiction",
+    },
+    {
+      title: "The Great Gatsby",
+      author: "F. Scott Fitzgerald",
+      isbn: "9780743273565",
+      publishedYear: 1925,
+      genre: "Fiction",
+    },
+    {
+      title: "A Brief History of Time",
+      author: "Stephen Hawking",
+      isbn: "9780553380163",
+      publishedYear: 1988,
+      genre: "Science",
+    },
+    {
+      title: "The Selfish Gene",
+      author: "Richard Dawkins",
+      isbn: "9780198788607",
+      publishedYear: 1976,
+      genre: "Science",
+    },
+    {
+      title: "Cosmos",
+      author: "Carl Sagan",
+      isbn: "9780345539434",
+      publishedYear: 1980,
+      genre: "Science",
+    },
+    {
+      title: "The Origin of Species",
+      author: "Charles Darwin",
+      isbn: "9780451529060",
+      publishedYear: 1859,
+      genre: "Science",
+    },
+    {
+      title: "Clean Code",
+      author: "Robert C. Martin",
+      isbn: "9780132350884",
+      publishedYear: 2008,
+      genre: "Technology",
+    },
+    {
+      title: "The Pragmatic Programmer",
+      author: "Andrew Hunt and David Thomas",
+      isbn: "9780135957059",
+      publishedYear: 1999,
+      genre: "Technology",
+    },
+    {
+      title: "Introduction to Algorithms",
+      author: "Thomas H. Cormen",
+      isbn: "9780262046305",
+      publishedYear: 2022,
+      genre: "Technology",
+    },
+    {
+      title: "Design Patterns",
+      author: "Erich Gamma",
+      isbn: "9780201633610",
+      publishedYear: 1994,
+      genre: "Technology",
+    },
+    {
+      title: "The Art of War",
+      author: "Sun Tzu",
+      isbn: "9781590302255",
+      publishedYear: -500,
+      genre: "History",
+    },
+    {
+      title: "The Diary of a Young Girl",
+      author: "Anne Frank",
+      isbn: "9780553296983",
+      publishedYear: 1947,
+      genre: "History",
+    },
+    {
+      title: "Long Walk to Freedom",
+      author: "Nelson Mandela",
+      isbn: "9780316548182",
+      publishedYear: 1994,
+      genre: "History",
+    },
+    {
+      title: "The Guns of August",
+      author: "Barbara W. Tuchman",
+      isbn: "9780345476098",
+      publishedYear: 1962,
+      genre: "History",
+    },
   ];
 
+  // Insert or update books without creating duplicates
   for (const book of books) {
-    const { genre, ...bookData } = book;
-    const genreId = genreIds.get(genre)!;
+    const genreId = genreIds.get(book.genre);
+
+    if (!genreId) {
+      throw new Error(`Genre not found: ${book.genre}`);
+    }
 
     await prisma.book.upsert({
       where: { isbn: book.isbn },
-      update: { ...bookData, genreId },
-      create: { ...bookData, genreId },
+      update: {
+        title: book.title,
+        author: book.author,
+        publishedYear: book.publishedYear,
+        genreId,
+      },
+      create: {
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        publishedYear: book.publishedYear,
+        genreId,
+      },
     });
   }
 
@@ -74,7 +184,7 @@ async function main() {
 main()
   .catch((error) => {
     console.error("Seeding failed:", error);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

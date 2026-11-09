@@ -16,11 +16,14 @@ export class PrismaService
     super({ adapter });
   }
 
-  async onModuleInit() {
+  // Automatically connect when the NestJS module initializes
+  async onModuleInit(): Promise<void> {
     await this.$connect();
+    console.log("Prisma connected to the database successfully.");
   }
 
-  async onModuleDestroy() {
+  // Disconnect when the application shuts down
+  async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
   }
 }
